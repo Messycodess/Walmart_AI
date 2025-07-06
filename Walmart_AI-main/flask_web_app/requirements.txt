@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Werkzeug
+joblib
+numpy
+pandas
+xgboost
+scikit-learn
+rechart
+flask-cors
