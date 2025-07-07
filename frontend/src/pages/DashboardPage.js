@@ -1,61 +1,53 @@
 // src/pages/DashboardPage.js (UI/UX Enhanced)
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../context/AuthContext'; // Import useAuth hook
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const DashboardPage = ({ api }) => {
   const { username } = useAuth();
-  const [allProducts, setAllProducts] = useState([]); // Stores all product data
+  const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState(''); // State for search input
+  const [filters, setFilters] = useState({
+    product_name: '',
+    brand_score_min: '',
+    brand_score_max: '',
+    quantity_min: '',
+    quantity_max: ''
+  });
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const password = localStorage.getItem('password');
+      if (!password) {
+        setError('Missing credentials. Please log in again.');
+        return;
+      }
+
+      const response = await api.post('/dashboard_data', {
+        username,
+        password,
+        filters: {
+          ...filters,
+          brand_score_min: filters.brand_score_min || undefined,
+          brand_score_max: filters.brand_score_max || undefined,
+          quantity_min: filters.quantity_min || undefined,
+          quantity_max: filters.quantity_max || undefined,
+        }
+      });
+      setTableData(response.data);
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+      setError('Failed to fetch data.');
+    } finally {
+      setLoading(false);
+    }
+  }, [api, username, filters]);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const storedPassword = localStorage.getItem('password'); // Retrieve password (for demo)
-        if (!storedPassword) {
-            setError("Authentication required. Password not found in local storage. Please log in again.");
-            setLoading(false);
-            return;
-        }
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-        // Call the new dashboard_data endpoint
-        const response = await api.post('/dashboard_data', {
-            username: username,
-            password: storedPassword
-        });
-        setAllProducts(response.data);
-      } catch (err) {
-        setError('Failed to load dashboard data. Ensure backend is running and authenticated.');
-        console.error("Dashboard data fetch error:", err.response ? err.response.data : err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (username) {
-      fetchDashboardData();
-    }
-  }, [api, username]);
-
-  // Filter products based on search term
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm) {
-      return allProducts;
-    }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return allProducts.filter(product =>
-      Object.values(product).some(value =>
-        String(value).toLowerCase().includes(lowerCaseSearchTerm)
-      )
-    );
-  }, [allProducts, searchTerm]);
-
-  // Define table headers dynamically or explicitly
-  // Using explicit headers for better control and display names
-  const tableHeaders = [
+  const headers = [
     { key: "id", label: "ID" },
     { key: "Product Name", label: "Product Name" },
     { key: "Brand Score", label: "Brand Score" },
@@ -64,65 +56,84 @@ const DashboardPage = ({ api }) => {
     { key: "Days to Expire", label: "Days to Expire" },
     { key: "Demand Factor", label: "Demand Factor" },
     { key: "Quantity Left", label: "Quantity Left" },
-    { key: "Predicted Discount (%)", label: "Predicted Discount (%)" },
+    { key: "Predicted Discount (%)", label: "Predicted Discount" },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 sm:p-8 lg:p-10">
-      <div className="container mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8 lg:p-10 border border-gray-200">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6 text-center leading-tight">
-          Welcome to Your Dashboard, <span className="text-blue-600">{username}</span>!
+    <div className="min-h-screen p-6 bg-gray-50">
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <h1 className="text-3xl font-bold text-center mb-6">
+          Dashboard – <span className="text-blue-600">{username}</span>
         </h1>
 
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 text-center border-b-2 border-blue-200 pb-4">
-          All Products & Predicted Discounts
-        </h2>
-
-        {/* Search Bar */}
-        <div className="mb-8 flex justify-center">
+        {/* Filters */}
+        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             type="text"
-            placeholder="Search by any field (e.g., product name, brand score)..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-xl px-5 py-3 border border-gray-300 rounded-full shadow-inner focus:ring-blue-500 focus:border-blue-500 text-lg transition duration-300 ease-in-out transform focus:scale-102"
+            placeholder="🔍 Product name"
+            value={filters.product_name}
+            onChange={(e) => setFilters({ ...filters, product_name: e.target.value })}
+            className="p-2 border rounded"
           />
+          <input
+            type="number"
+            placeholder="Brand Score Min"
+            value={filters.brand_score_min}
+            onChange={(e) => setFilters({ ...filters, brand_score_min: e.target.value })}
+            className="p-2 border rounded"
+          />
+          <input
+            type="number"
+            placeholder="Brand Score Max"
+            value={filters.brand_score_max}
+            onChange={(e) => setFilters({ ...filters, brand_score_max: e.target.value })}
+            className="p-2 border rounded"
+          />
+          <input
+            type="number"
+            placeholder="Quantity Min"
+            value={filters.quantity_min}
+            onChange={(e) => setFilters({ ...filters, quantity_min: e.target.value })}
+            className="p-2 border rounded"
+          />
+          <input
+            type="number"
+            placeholder="Quantity Max"
+            value={filters.quantity_max}
+            onChange={(e) => setFilters({ ...filters, quantity_max: e.target.value })}
+            className="p-2 border rounded"
+          />
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+            onClick={fetchDashboardData}
+          >
+            Apply Filters
+          </button>
         </div>
 
+        {/* Data Table */}
         {loading ? (
-          <div className="text-center py-10 text-2xl text-blue-600 font-semibold animate-pulse">
-            Loading all product data...
-          </div>
+          <p className="text-center text-lg">Loading...</p>
         ) : error ? (
-          <div className="text-center py-10 text-2xl text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg p-6">
-            <p>Error: {error}</p>
-            <p className="text-lg mt-2">Please ensure your backend server is running and you are logged in correctly.</p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-10 text-2xl text-gray-600 font-semibold bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            No products found matching your search term: "<span className="font-bold">{searchTerm}</span>".
-          </div>
+          <p className="text-center text-red-600">{error}</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-md">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-blue-50">
-                <tr>
-                  {tableHeaders.map((header) => (
-                    <th
-                      key={header.key}
-                      className="px-6 py-3 text-left text-xs sm:text-sm font-bold text-blue-700 uppercase tracking-wider"
-                    >
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-sm">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  {headers.map((header) => (
+                    <th key={header.key} className="p-2 border-b">
                       {header.label}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
-                    {tableHeaders.map((header) => (
-                      <td key={header.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {header.key === "Predicted Discount (%)" ? `${product[header.key]}%` : product[header.key]}
+              <tbody>
+                {tableData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    {headers.map((header) => (
+                      <td key={header.key} className="p-2 border-b">
+                        {row[header.key]}
                       </td>
                     ))}
                   </tr>
