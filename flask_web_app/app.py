@@ -109,7 +109,21 @@ def predict():
     if not all(f in data for f in features):
         return jsonify({"error": "Missing features"}), 400
     input_df = pd.DataFrame([[data[f] for f in features]], columns=features)
-    prediction = round(model.predict(scaler.transform(input_df))[0], 2)
+    prediction = float(round(model.predict(scaler.transform(input_df))[0],2))
+    # Optionally save to database
+    if data.get("save_to_db") == True:
+        prediction_record = ProductPrediction(
+            product_name=data.get("product_name"),  # optional, can be None
+            brand_score=data["Brand Score"],
+            cost_price=data["Cost Price (cp)"],
+            selling_price=data["Selling Price (sp)"],
+            days_to_expire=data["Days to Expire"],
+            demand_factor=data["Demand Factor"],
+            quantity_left=data["Quantity Left"],
+            predicted_discount=prediction
+        )
+        db.session.add(prediction_record)
+        db.session.commit()
     return jsonify({"predicted_discount": prediction})
 
 @app.route("/dashboard_data", methods=["POST"])

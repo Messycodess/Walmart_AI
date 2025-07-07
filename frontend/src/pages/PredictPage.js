@@ -15,6 +15,8 @@ const PredictPage = ({ api }) => {
   const [predictionResult, setPredictionResult] = useState(null);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [saveToDb, setSaveToDb] = useState(false);
+  const [productName, setProductName] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,7 +47,9 @@ const PredictPage = ({ api }) => {
         "Selling Price (sp)": parseFloat(formData["Selling Price (sp)"]),
         "Days to Expire": parseInt(formData["Days to Expire"]),
         "Demand Factor": parseFloat(formData["Demand Factor"]),
-        "Quantity Left": parseInt(formData["Quantity Left"])
+        "Quantity Left": parseInt(formData["Quantity Left"]),
+        save_to_db: saveToDb,
+        ...(saveToDb && { product_name: productName })
       };
 
       const response = await api.post('/predict', payload);
@@ -94,6 +98,38 @@ const PredictPage = ({ api }) => {
                 />
               </div>
             ))}
+
+            <div className="flex items-center">
+              <input
+                id="saveToDb"
+                name="saveToDb"
+                type="checkbox"
+                checked={saveToDb}
+                onChange={(e) => setSaveToDb(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="saveToDb" className="ml-2 block text-sm text-gray-700">
+                Save this prediction
+              </label>
+            </div>
+
+            {saveToDb && (
+              <div>
+                <label htmlFor="productName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Product Name
+                </label>
+                <input
+                  type="text"
+                  id="productName"
+                  name="productName"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required={saveToDb}
+                />
+              </div>
+            )}
+
 
             <button
               type="submit"
