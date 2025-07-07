@@ -1,13 +1,24 @@
-// src/pages/DashboardPage.js (UI/UX Enhanced)
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardPage = ({ api }) => {
   const { username } = useAuth();
+
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // 🔄 Filters applied to the API
   const [filters, setFilters] = useState({
+    product_name: '',
+    brand_score_min: '',
+    brand_score_max: '',
+    quantity_min: '',
+    quantity_max: ''
+  });
+
+  // 🧪 Temp filters for inputs
+  const [tempFilters, setTempFilters] = useState({
     product_name: '',
     brand_score_min: '',
     brand_score_max: '',
@@ -17,6 +28,7 @@ const DashboardPage = ({ api }) => {
 
   const fetchDashboardData = useCallback(async () => {
     try {
+      setLoading(true);
       const password = localStorage.getItem('password');
       if (!password) {
         setError('Missing credentials. Please log in again.');
@@ -31,10 +43,12 @@ const DashboardPage = ({ api }) => {
           brand_score_min: filters.brand_score_min || undefined,
           brand_score_max: filters.brand_score_max || undefined,
           quantity_min: filters.quantity_min || undefined,
-          quantity_max: filters.quantity_max || undefined,
+          quantity_max: filters.quantity_max || undefined
         }
       });
+
       setTableData(response.data);
+      setError('');
     } catch (err) {
       console.error('Dashboard fetch error:', err);
       setError('Failed to fetch data.');
@@ -43,6 +57,7 @@ const DashboardPage = ({ api }) => {
     }
   }, [api, username, filters]);
 
+  // ⏬ Fetch when filters change
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
@@ -71,41 +86,41 @@ const DashboardPage = ({ api }) => {
           <input
             type="text"
             placeholder="🔍 Product name"
-            value={filters.product_name}
-            onChange={(e) => setFilters({ ...filters, product_name: e.target.value })}
+            value={tempFilters.product_name}
+            onChange={(e) => setTempFilters({ ...tempFilters, product_name: e.target.value })}
             className="p-2 border rounded"
           />
           <input
             type="number"
             placeholder="Brand Score Min"
-            value={filters.brand_score_min}
-            onChange={(e) => setFilters({ ...filters, brand_score_min: e.target.value })}
+            value={tempFilters.brand_score_min}
+            onChange={(e) => setTempFilters({ ...tempFilters, brand_score_min: e.target.value })}
             className="p-2 border rounded"
           />
           <input
             type="number"
             placeholder="Brand Score Max"
-            value={filters.brand_score_max}
-            onChange={(e) => setFilters({ ...filters, brand_score_max: e.target.value })}
+            value={tempFilters.brand_score_max}
+            onChange={(e) => setTempFilters({ ...tempFilters, brand_score_max: e.target.value })}
             className="p-2 border rounded"
           />
           <input
             type="number"
             placeholder="Quantity Min"
-            value={filters.quantity_min}
-            onChange={(e) => setFilters({ ...filters, quantity_min: e.target.value })}
+            value={tempFilters.quantity_min}
+            onChange={(e) => setTempFilters({ ...tempFilters, quantity_min: e.target.value })}
             className="p-2 border rounded"
           />
           <input
             type="number"
             placeholder="Quantity Max"
-            value={filters.quantity_max}
-            onChange={(e) => setFilters({ ...filters, quantity_max: e.target.value })}
+            value={tempFilters.quantity_max}
+            onChange={(e) => setTempFilters({ ...tempFilters, quantity_max: e.target.value })}
             className="p-2 border rounded"
           />
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
-            onClick={fetchDashboardData}
+            onClick={() => setFilters({ ...tempFilters })}
           >
             Apply Filters
           </button>
